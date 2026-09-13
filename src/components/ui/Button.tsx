@@ -65,6 +65,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
+        className="ui-button"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -84,6 +85,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           transition: `transform var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard)`,
           lineHeight: 1,
           whiteSpace: 'nowrap',
+          maxWidth: '100%',
           ...style,
         }}
         onMouseEnter={(e) => {

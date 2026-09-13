@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { QuestionSet, Question, QuestionAttempt, QuestionSetProgress } from '@/types'
+import type { QuestionSet, Question, QuestionAttempt, QuestionSetProgress, QuestionType } from '@/types'
 
 // ==========================================
 // Question Sets
@@ -141,6 +141,87 @@ export async function deleteQuestion(questionId: string): Promise<void> {
     .eq('id', questionId)
 
   if (error) throw error
+}
+
+export interface BulkQuestionInput {
+  type: QuestionType
+  prompt: string
+  options?: string[]
+  correct_answer: string | string[]
+  explanation?: string
+  book_node_id?: string
+}
+
+function importError(message: string): never {
+  throw new Error(`ملف الاستيراد غير صالح: ${message}`)
+}
+
+function normalizeImportedQuestion(value: unknown, questionIndex: number): BulkQuestionInput {
+  const path = `السؤال ${questionIndex + 1}`
+  if (!value || typeof value !== 'object' || Array.isArray(value)) importError(`${path} يجب أن يكون كائناً.`)
+  const question = value as Record<string, unknown>
+  const type = question.type
+  const prompt = typeof question.prompt === 'string' ? question.prompt.trim() : ''
+  if (type !== 'multiple_choice' && type !== 'true_false' && type !== 'multiple_correct') importError(`${path} يحتوي على نوع سؤال غير مدعوم.`)
+  if (!prompt) importError(`${path} يحتاج إلى نص السؤال.`)
+
+  const options = Array.isArray(question.options)
+    ? question.options.map((option) => typeof option === 'string' ? option.trim() : '').filter(Boolean)
+    : []
+  const explanation = typeof question.explanation === 'string' ? question.explanation.trim() : undefined
+  const bookNodeId = typeof question.book_node_id === 'string' ? question.book_node_id : undefined
+
+  if (type === 'true_false') {
+    const answer = question.correct_answer
+    const correctAnswer = answer === true || answer === 'true' || answer === 'صحيح' ? 'صحيح'
+      : answer === false || answer === 'false' || answer === 'خاطئ' ? 'خاطئ'
+      : importError(`${path} يحتاج إلى correct_answer بقيمة صحيح أو خاطئ.`)
+    return { type, prompt, options: ['صحيح', 'خاطئ'], correct_answer: correctAnswer, explanation, book_node_id: bookNodeId }
+  }
+
+  if (options.length < 2) importError(`${path} يحتاج إلى خيارين على الأقل.`)
+  if (type === 'multiple_choice') {
+    if (typeof question.correct_answer !== 'string' || !options.includes(question.correct_answer.trim())) importError(`${path} يحتاج إلى إجابة صحيحة مطابقة لأحد الخيارات.`)
+    return { type, prompt, options, correct_answer: question.correct_answer.trim(), explanation, book_node_id: bookNodeId }
+  }
+
+  if (!Array.isArray(question.correct_answer) || question.correct_answer.length === 0 || !question.correct_answer.every((answer) => typeof answer === 'string' && options.includes(answer.trim()))) importError(`${path} يحتاج إلى قائمة إجابات صحيحة مطابقة للخيارات.`)
+  return { type, prompt, options, correct_answer: question.correct_answer.map((answer) => answer.trim()), explanation, book_node_id: bookNodeId }
+}
+
+export function parseBulkQuestions(input: unknown): BulkQuestionInput[] {
+  const source = Array.isArray(input)
+    ? input
+    : input && typeof input === 'object' && Array.isArray((input as { questions?: unknown }).questions)
+      ? (input as { questions: unknown[] }).questions
+      : importError('استخدم مصفوفة أسئلة أو كائناً يحتوي على questions.')
+
+  if (source.length === 0) importError('لا توجد أسئلة للاستيراد.')
+  return source.map((question, index) => normalizeImportedQuestion(question, index))
+}
+
+export async function importQuestionsForSetFromJson(data: {
+  questionSetId: string
+  input: unknown
+  startOrderIndex: number
+}): Promise<Question[]> {
+  const questions = parseBulkQuestions(data.input)
+  const { data: insertedQuestions, error } = await supabase
+    .from('questions')
+    .insert(questions.map((question, index) => ({
+      question_set_id: data.questionSetId,
+      book_node_id: question.book_node_id || null,
+      type: question.type,
+      prompt: question.prompt,
+      options: question.options || null,
+      correct_answer: question.correct_answer,
+      explanation: question.explanation || null,
+      order_index: data.startOrderIndex + index,
+    })))
+    .select()
+
+  if (error) throw error
+  return insertedQuestions || []
 }
 
 // ==========================================
@@ -332,4 +413,3 @@ export async function getQuestionSetsWithProgress(
     }
   })
 }
-

@@ -65,6 +65,14 @@ function App() {
               }
             />
             <Route
+              path="/books/:bookId/question-sets/:setId"
+              element={
+                <ProtectedRoute>
+                  <QuestionSetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/books/:bookId/question-sets/:setId/manage"
               element={
                 <ProtectedRoute>

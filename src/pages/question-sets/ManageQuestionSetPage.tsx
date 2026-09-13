@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { getQuestionSet, getQuestionsForSet, createQuestion, deleteQuestion, updateQuestionSet } from '@/services/questions'
+import { getQuestionSet, getQuestionsForSet, createQuestion, deleteQuestion, importQuestionsForSetFromJson, updateQuestionSet } from '@/services/questions'
 import { getBookNodes } from '@/services/books'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
+import { FileUpload } from '@/components/ui/FileUpload'
 import type { QuestionSet, Question, BookNode, QuestionType } from '@/types'
 
 export function ManageQuestionSetPage() {
@@ -20,6 +21,7 @@ export function ManageQuestionSetPage() {
   const [nodes, setNodes] = useState<BookNode[]>([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   useEffect(() => {
     if (defaultNodeId) {
@@ -94,6 +96,20 @@ export function ManageQuestionSetPage() {
     }
   }
 
+  const handleImportQuestions = async (input: unknown): Promise<number> => {
+    if (!setId) throw new Error('تعذر تحديد مجموعة الأسئلة.')
+    const importedQuestions = await importQuestionsForSetFromJson({
+      questionSetId: setId,
+      input,
+      startOrderIndex: questions.length,
+    })
+    const newTotal = questions.length + importedQuestions.length
+    await updateQuestionSet(setId, { total_questions: newTotal } as Partial<QuestionSet>)
+    setQuestions((current) => [...current, ...importedQuestions])
+    setQuestionSet((current) => current ? { ...current, total_questions: newTotal } : current)
+    return importedQuestions.length
+  }
+
   if (loading) {
     return (
       <div className="page-enter" style={{ maxWidth: '800px', margin: '0 auto', padding: 'var(--space-7) var(--space-5)' }}>
@@ -115,12 +131,15 @@ export function ManageQuestionSetPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
           مجموعات الأسئلة
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap" style={{ gap: 'var(--space-4)' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '1.4rem' }}>{questionSet?.name}</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: 'var(--space-1)' }}>{questions.length} سؤال</p>
           </div>
-          <Button onClick={() => setAddOpen(true)}>إضافة سؤال</Button>
+          <div className="question-set-header-actions">
+            <Button variant="secondary" onClick={() => setImportOpen(true)}>استيراد JSON</Button>
+            <Button onClick={() => setAddOpen(true)}>إضافة سؤال</Button>
+          </div>
         </div>
       </div>
 
@@ -128,7 +147,10 @@ export function ManageQuestionSetPage() {
       {questions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
           <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-5)' }}>لا توجد أسئلة بعد. أضف سؤالك الأول.</p>
-          <Button onClick={() => setAddOpen(true)}>إضافة سؤال</Button>
+          <div className="flex items-center justify-center flex-wrap" style={{ gap: 'var(--space-3)' }}>
+            <Button onClick={() => setAddOpen(true)}>إضافة سؤال</Button>
+            <Button variant="secondary" onClick={() => setImportOpen(true)}>استيراد JSON</Button>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -213,7 +235,98 @@ export function ManageQuestionSetPage() {
         chapters={nodes}
         defaultNodeId={defaultNodeId}
       />
+      <ImportQuestionsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImportQuestions}
+      />
     </div>
+  )
+}
+
+function ImportQuestionsModal({
+  open,
+  onClose,
+  onImport,
+}: {
+  open: boolean
+  onClose: () => void
+  onImport: (input: unknown) => Promise<number>
+}) {
+  const [json, setJson] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [importedCount, setImportedCount] = useState<number | null>(null)
+
+  const resetAndClose = () => {
+    setJson('')
+    setError(null)
+    setImportedCount(null)
+    onClose()
+  }
+
+  const handleFile = async (file: File) => {
+    try {
+      setJson(await file.text())
+      setError(null)
+      setImportedCount(null)
+    } catch {
+      setError('تعذر قراءة الملف. اختر ملف JSON صالحاً.')
+    }
+  }
+
+  const handleImport = async () => {
+    setError(null)
+    setImportedCount(null)
+    try {
+      setLoading(true)
+      setImportedCount(await onImport(JSON.parse(json)))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذر استيراد الأسئلة.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={resetAndClose} title="استيراد أسئلة من JSON" maxWidth="680px">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', direction: 'rtl' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.75 }}>
+          ستُضاف هذه الأسئلة إلى مجموعة الأسئلة الحالية فقط، مع الحفاظ على ترتيب الأسئلة الموجودة.
+        </p>
+        <FileUpload accept=".json,application/json" maxSize={2} label="اختر ملف JSON للأسئلة" helpText="ملف حتى 2MB — أو الصق المحتوى أدناه" onFileSelect={handleFile} uploading={loading} />
+        <Textarea
+          label="محتوى JSON"
+          value={json}
+          onChange={(event) => { setJson(event.target.value); setError(null); setImportedCount(null) }}
+          placeholder={'{\n  "questions": [ ... ]\n}'}
+          style={{ minHeight: '190px', direction: 'ltr', textAlign: 'left', fontFamily: 'ui-monospace, monospace', fontSize: '0.78rem' }}
+        />
+        <details style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)' }}>عرض صيغة JSON المطلوبة</summary>
+          <pre style={{ marginTop: 'var(--space-3)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', overflowX: 'auto', background: 'var(--surface-black)', direction: 'ltr', textAlign: 'left', lineHeight: 1.55 }}>{`{
+  "questions": [{
+    "type": "multiple_choice",
+    "prompt": "ما الإجابة الصحيحة؟",
+    "options": ["أ", "ب", "ج"],
+    "correct_answer": "أ",
+    "explanation": "توضيح اختياري",
+    "book_node_id": "معرّف القسم اختياري"
+  }, {
+    "type": "true_false",
+    "prompt": "هذه عبارة صحيحة؟",
+    "correct_answer": "صحيح"
+  }]
+}`}</pre>
+        </details>
+        {error && <p style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)', color: '#ffb4b4', background: 'var(--surface-red)', fontSize: '0.9rem' }}>{error}</p>}
+        {importedCount !== null && <p style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)', color: '#bcf5ce', background: 'rgba(34, 120, 69, .24)', fontSize: '0.9rem' }}>تمت إضافة {importedCount} سؤال بنجاح.</p>}
+        <div className="flex items-center justify-end flex-wrap" style={{ gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+          <Button onClick={handleImport} disabled={!json.trim() || loading} loading={loading}>استيراد الأسئلة</Button>
+          <Button variant="secondary" onClick={resetAndClose} disabled={loading}>{importedCount !== null ? 'تم' : 'إلغاء'}</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 

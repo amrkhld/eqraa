@@ -113,7 +113,7 @@ export function QuestionSetsPage() {
           </svg>
           {book?.title || 'العودة لتفاصيل الكتاب'}
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap" style={{ gap: 'var(--space-4)' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '1.6rem', color: 'var(--text-primary)', margin: 0 }}>
               مجموعات الأسئلة

@@ -221,10 +221,11 @@ export function BookDetailPage() {
 
   return (
     <div
-      className="page-enter"
+      className="page-enter book-detail-page"
       style={{
         maxWidth: '960px',
         margin: '0 auto',
+        // Keep the hero clear of the viewport edge; the sidebar is fixed and does not create a top offset.
         padding: 'var(--space-8) var(--space-5) var(--space-12) var(--space-5)',
         direction: 'rtl',
       }}
@@ -438,7 +439,7 @@ export function BookDetailPage() {
           )}
 
           {/* Action Buttons Row */}
-          <div className="flex items-center flex-wrap" style={{ gap: 'var(--space-3)' }}>
+          <div className="book-hero-actions">
             {/* Primary Action: Read / Continue */}
             <Link to={`/books/${book.id}/read`}>
               <Button
@@ -1010,7 +1011,7 @@ export function BookDetailPage() {
 
                       {/* Action Links */}
                       <div className="flex items-center" style={{ gap: 'var(--space-2)' }}>
-                        <Link to={`/question-sets/${qs.id}/play`}>
+                        <Link to={`/books/${book.id}/question-sets/${qs.id}/take`}>
                           <Button size="sm" style={{ padding: '5px 14px', fontSize: '0.82rem' }}>
                             {qs.progress ? 'متابعة الحل' : 'بدء الأسئلة'}
                           </Button>
