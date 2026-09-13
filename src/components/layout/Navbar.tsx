@@ -23,7 +23,7 @@ export function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-50"
+      className="relative z-50"
       style={{
         background: 'linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0.42))',
         backdropFilter: 'blur(12px)',
