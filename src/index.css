@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* ==========================================
+   اقرأ — Design Tokens (from skill.md)
+   ========================================== */
+
+:root {
+  /* Colors — Dark Red to Black System */
+  --red-950: #2a0508;
+  --red-900: #3b080d;
+  --red-800: #520b12;
+  --red-700: #6f1018;
+  --red-600: #8b1720;
+  --red-500: #a51e29;
+
+  --black-950: #050505;
+  --black-900: #090909;
+  --black-850: #0d0d0d;
+  --black-800: #121212;
+  --black-700: #181818;
+
+  --white: #ffffff;
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(255, 255, 255, 0.68);
+  --text-muted: rgba(255, 255, 255, 0.46);
+
+  --surface-black: rgba(0, 0, 0, 0.28);
+  --surface-black-strong: rgba(0, 0, 0, 0.42);
+  --surface-red: rgba(111, 16, 24, 0.30);
+  --surface-red-strong: rgba(111, 16, 24, 0.46);
+
+  /* Background gradient anchors */
+  --color-bg-start: #3b080d;
+  --color-bg-mid: #180608;
+  --color-bg-end: #050505;
+
+  --color-red: #6f1018;
+  --color-red-strong: #8b1720;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-normal: 220ms;
+  --duration-slow: 360ms;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+
+  /* Font families */
+  --font-title: 'Reem Kufi', sans-serif;
+  --font-body: 'Amiri', serif;
+}
+
+/* ==========================================
+   Global Styles
+   ========================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: linear-gradient(
+    145deg,
+    var(--color-bg-start) 0%,
+    var(--color-bg-mid) 38%,
+    #080808 72%,
+    var(--color-bg-end) 100%
+  );
+  background-attachment: fixed;
+  min-height: 100vh;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================
+   Typography
+   ========================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ==========================================
+   Scrollbar
+   ========================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(111, 16, 24, 0.4);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 16, 24, 0.6);
+}
+
+/* ==========================================
+   Page Enter Animation
+   ========================================== */
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageEnter 360ms var(--ease-standard) both;
+}
+
+/* ==========================================
+   Reduced Motion
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================
+   Tailwind Theme Overrides
+   ========================================== */
+
+@theme {
+  --font-title: 'Reem Kufi', sans-serif;
+  --font-body: 'Amiri', serif;
+  
+  --color-red-950: #2a0508;
+  --color-red-900: #3b080d;
+  --color-red-800: #520b12;
+  --color-red-700: #6f1018;
+  --color-red-600: #8b1720;
+  --color-red-500: #a51e29;
+
+  --color-black-950: #050505;
+  --color-black-900: #090909;
+  --color-black-850: #0d0d0d;
+  --color-black-800: #121212;
+  --color-black-700: #181818;
+}
